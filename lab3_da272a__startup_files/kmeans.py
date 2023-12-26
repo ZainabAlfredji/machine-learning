@@ -38,7 +38,25 @@ def distance(a,b):
 def kmeans(data_points, num_clusters, termination_tol, max_iter):
     
     # You should implement the kmeans algorithm by editing this function.
+    #initialize centroids by randomly selecting data point and reset when method is called again
+    centroids = data_points.sample(num_clusters).reset_index(drop=True)
 
+    for _ in range(max_iter):
+        # Assign each data point to the nearest centroid
+        distances = np.array([[distance(row , centroid) for _, centroid in centroids.iterrows()] for _, row in data_points.iterrows()])
+        data_points['cluster'] = np.argmin(distances, axis=1)
+
+        # Calculate new centroids
+        new_centroids = data_points.groupby('cluster').mean().reset_index(drop=True)
+
+        # Termination condition based on centroid movement
+        total_distance = sum([np.linalg.norm(new_centroids.iloc[j] - centroids.iloc[j]) for j in range(num_clusters)])
+        if total_distance < termination_tol:
+            break
+
+        centroids = new_centroids
+
+    return centroids, data_points, total_distance
 
 
 

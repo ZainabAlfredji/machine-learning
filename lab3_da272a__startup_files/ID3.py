@@ -118,9 +118,24 @@ class Node:
         
     # Method is used to expand a node when constucting the decision tree  
     def split(self):
-       
-          
-        # You will have to edit this method. 
+        # You will have to edit this method. # Calculate information gain for each attribute
+        gains = {attr: information_gain(self.data, attr, self.target_attribute) 
+                 for attr in self.data.columns if attr != self.target_attribute}
+
+        # Select the best attribute
+        best_attribute = max(gains, key=gains.get)
+
+        # Split the dataset and create child nodes
+        for value in self.data[best_attribute].unique():
+            subset = self.data[self.data[best_attribute] == value]
+            child_node = Node(data=subset, ...)
+            self.children.append(child_node)
+
+        # Recursively apply ID3 on each child node
+        for child in self.children:
+            if not stopping_criteria_met:
+                child.split()
+        
     
     
     
@@ -128,8 +143,8 @@ class Node:
     
 
     # This method creates a text representation of the decision tree.   
-    def print(self):
-        print("Node<" + str(self.id) + ">" )
+        def print(self):
+            print("Node<" + str(self.id) + ">" )
         
         if not self.children:
             print("  Leaf node - Parent: " + str(self.parent.id) + ", Decision: " + self.class_name)

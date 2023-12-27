@@ -39,9 +39,11 @@ def kmeans(data_points, num_clusters, termination_tol, max_iter):
     
     # You should implement the kmeans algorithm by editing this function.
     #initialize centroids by randomly selecting data point and reset when method is called again
-    centroids = data_points.sample(num_clusters).reset_index(drop=True)
+    centroids = pd.DataFrame(rd.sample(data_points.values.tolist(), num_clusters), columns=data_points.columns)
+
 
     for _ in range(max_iter):
+        
         # Assign each data point to the nearest centroid
         distances = np.array([[distance(row , centroid) for _, centroid in centroids.iterrows()] for _, row in data_points.iterrows()])
         data_points['cluster'] = np.argmin(distances, axis=1)
@@ -89,11 +91,6 @@ plt.title("Elbow method")
 plt.xlabel("Number of clusters (k)")
 plt.ylabel("Total distance")
 plt.show()
-
-
-
-
-
 
 
 

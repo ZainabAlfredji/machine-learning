@@ -114,55 +114,101 @@ class Node:
         # Dictionary used to keep track of the child nodes. Empty if the node is a leaf. 
         self.children = {}
 
-        
+
         
     # Method is used to expand a node when constucting the decision tree  
     def split(self):
-        # You will have to edit this method. # Calculate information gain for each attribute
-        gains = {attr: information_gain(self.data, attr, self.target_attribute) 
-                 for attr in self.data.columns if attr != self.target_attribute}
+        # Check if maximum height is reached or if there are no features left to split on
+        if self.height >= self.max_height or len(self.input_names) == 0:
+            # Determine the class of the leaf node
+            self.class_name = self.determine_class_name()
+            return
 
-        # Select the best attribute
-        best_attribute = max(gains, key=gains.get)
+        best_feature, best_info_gain = None, -1
+        for feature in self.input_names:
+            info_gain = self.calculate_information_gain(feature)
+            if info_gain > best_info_gain:
+                best_info_gain = info_gain
+                best_feature = feature
 
-        # Split the dataset and create child nodes
-        for value in self.data[best_attribute].unique():
-            subset = self.data[self.data[best_attribute] == value]
-            child_node = Node(data=subset, ...)
-            self.children.append(child_node)
+        # If no feature gives information gain, set as leaf node with class
+        if best_feature is None:
+            self.class_name = self.determine_class_name()
+            return
 
-        # Recursively apply ID3 on each child node
-        for child in self.children:
-            if not stopping_criteria_met:
-                child.split()
-        
-    
-    
-    
-    
-    
-
-    # This method creates a text representation of the decision tree.   
-        def print(self):
-            print("Node<" + str(self.id) + ">" )
-        
-        if not self.children:
-            print("  Leaf node - Parent: " + str(self.parent.id) + ", Decision: " + self.class_name)
+        self.split_variable = best_feature
+        for value in self.input_columns[best_feature].unique():
+            subset = self.input_columns[self.input_columns[best_feature] == value]
+            target_subset = self.target_column[self.input_columns[best_feature] == value]
+            new_input_columns = subset.drop(columns=[best_feature])
+            new_height = self.height + 1
+            self.children[value] = Node(new_height, self.max_height, new_input_columns, target_subset, self, value)
+            self.children[value].split()
             
-        else:
-            if self.parent is None:
-                print("  Non leaf node - Parent: None")
-            else:
-                print("  Non leaf node - Parent: " + str(self.parent.id))    
-            print("  Split variable: " + self.split_variable)
-            
+            # This method creates a text representation of the decision tree.   
+            def print(self):
+                    print("Node<" + str(self.id) + ">" )
                 
-            for child_split_value in self.children.keys():
-                child_node = self.children[child_split_value]  
-                print("    Child_node: " + str(child_node.id) + ", split_value: " + str(child_split_value))
+            if not self.children:
+                    print("  Leaf node - Parent: " + str(self.parent.id) + ", Decision: " + self.class_name)
+                    
+            else:
+                    if self.parent is None:
+                        print("  Non leaf node - Parent: None")
+                    else:
+                        print("  Non leaf node - Parent: " + str(self.parent.id))    
+                    print("  Split variable: " + self.split_variable)
+                    
+                        
+                    for child_split_value in self.children.keys():
+                        child_node = self.children[child_split_value]  
+                        print("    Child_node: " + str(child_node.id) + ", split_value: " + str(child_split_value))
+
+
+    def calculate_information_gain(self, feature):
+        """
+        Calculate the information gain for a feature using the entropy function from Utils class.
+        """
+        # Calculate total entropy using the target column
+        total_entropy = Utils.entropy(self.target_column)
+
+        # Get unique values and their counts for the feature
+        val, counts = np.unique(self.input_columns[feature], return_counts=True)
+
+        # Calculate weighted entropy for each unique value
+        weighted_entropy = sum(
+            (counts[i] / sum(counts)) * Utils.entropy(self.target_column[self.input_columns[feature] == val[i]])
+            for i in range(len(val))
+        )
+
+        # Information gain is the difference between total entropy and weighted entropy
+        info_gain = total_entropy - weighted_entropy
+        return info_gain
+    
+    def determine_class_name(self):
+        """
+        Determine the class name for a leaf node.
+        This method finds the most common class in the target column.
+        """
+        if self.target_column is None or len(self.target_column) == 0:
+            return None  # Return None if target_column is empty or not set
+
+        # Find the most common class in the target column
+        most_common_class = self.target_column.value_counts().idxmax()
+        return most_common_class
+    
+
+        
+        
+    
+    
+    
+
+    
         
 
 
+    
 
 
 #Class used to represent our decision tree generated using the ID3 algorithm

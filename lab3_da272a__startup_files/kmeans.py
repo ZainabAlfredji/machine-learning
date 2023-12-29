@@ -10,8 +10,6 @@ import numpy as np
 import math 
 import matplotlib.pyplot as plt
 import random as rd
-from sklearn.cluster import KMeans
-from sklearn.metrics import pairwise_distances_argmin_min
 
 
 
@@ -38,22 +36,35 @@ def distance(a,b):
 #
 #  
 def kmeans(data_points, num_clusters, termination_tol, max_iter):
-    # Initialize centroids using k-means++ for better initial placement
-    kmeans = KMeans(n_clusters=num_clusters, init='k-means++', max_iter=max_iter, n_init=10, random_state=42)
-    kmeans.fit(data_points)
-    centroids = pd.DataFrame(kmeans.cluster_centers_, columns=data_points.columns)
-    labels = kmeans.labels_
+    
+    # You should implement the kmeans algorithm by editing this function.
+    #initialize centroids by randomly selecting data point and reset when method is called again
+    # Initialize centroids by randomly selecting data points
+    centroids = data_points.sample(n=num_clusters, random_state=42).reset_index(drop=True)
 
-    # Calculate the total distance (optional, as k-means in sklearn already checks for convergence)
-    # This is to maintain the structure of your original function
-    closest, _ = pairwise_distances_argmin_min(kmeans.cluster_centers_, data_points)
-    total_distance = sum(np.min(kmeans.transform(data_points), axis=1))
+    for _ in range(max_iter):
+        # Assign each data point to the nearest centroid
+        # Making sure to exclude the 'cluster' column from data_points
+        data_points_no_cluster = data_points.drop('cluster', axis=1, errors='ignore')
+        distances = np.array([[distance(row, centroid) for _, centroid in centroids.iterrows()] for _, row in data_points_no_cluster.iterrows()])
+        data_points['cluster'] = np.argmin(distances, axis=1)
 
-    # Add cluster labels to data_points DataFrame
-    data_points['cluster'] = labels
+        # Calculate new centroids
+        # Using only the original data columns (x, y) for calculating new centroids
+        new_centroids = data_points_no_cluster.groupby(data_points['cluster']).mean().reset_index(drop=True)
 
-    return centroids, data_points, total_distance
+        # Calculate SSE (Sum of Squared Errors)
+        sse = sum(np.linalg.norm(data_points_no_cluster[data_points['cluster'] == j] - centroids.iloc[j])**2 for j in range(num_clusters))
 
+        # Termination condition based on SSE change
+        if len(new_centroids) == len(centroids):
+            sse_change = sum(np.linalg.norm(new_centroids.iloc[j] - centroids.iloc[j]) for j in range(num_clusters))
+            if sse_change < termination_tol:
+                break
+
+        centroids = new_centroids
+
+    return centroids, data_points, sse
 
 
 # Test elbow method using this code
@@ -72,7 +83,7 @@ plt.title("Data points")
 plt.show()
 
 
-num_clusters_to_test = 15
+num_clusters_to_test = 20
 total_dist_elbow = []
 
 for k in range(1,num_clusters_to_test+1):

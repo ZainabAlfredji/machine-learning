@@ -10,6 +10,8 @@ import numpy as np
 import math 
 import matplotlib.pyplot as plt
 import random as rd
+from sklearn.cluster import KMeans
+from sklearn.metrics import pairwise_distances_argmin_min
 
 
 
@@ -36,27 +38,19 @@ def distance(a,b):
 #
 #  
 def kmeans(data_points, num_clusters, termination_tol, max_iter):
-    
-    # You should implement the kmeans algorithm by editing this function.
-    #initialize centroids by randomly selecting data point and reset when method is called again
-    centroids = pd.DataFrame(rd.sample(data_points.values.tolist(), num_clusters), columns=data_points.columns)
+    # Initialize centroids using k-means++ for better initial placement
+    kmeans = KMeans(n_clusters=num_clusters, init='k-means++', max_iter=max_iter, n_init=10, random_state=42)
+    kmeans.fit(data_points)
+    centroids = pd.DataFrame(kmeans.cluster_centers_, columns=data_points.columns)
+    labels = kmeans.labels_
 
+    # Calculate the total distance (optional, as k-means in sklearn already checks for convergence)
+    # This is to maintain the structure of your original function
+    closest, _ = pairwise_distances_argmin_min(kmeans.cluster_centers_, data_points)
+    total_distance = sum(np.min(kmeans.transform(data_points), axis=1))
 
-    for _ in range(max_iter):
-        
-        # Assign each data point to the nearest centroid
-        distances = np.array([[distance(row , centroid) for _, centroid in centroids.iterrows()] for _, row in data_points.iterrows()])
-        data_points['cluster'] = np.argmin(distances, axis=1)
-
-        # Calculate new centroids
-        new_centroids = data_points.groupby('cluster').mean().reset_index(drop=True)
-
-        # Termination condition based on centroid movement
-        total_distance = sum([np.linalg.norm(new_centroids.iloc[j] - centroids.iloc[j]) for j in range(num_clusters)])
-        if total_distance < termination_tol:
-            break
-
-        centroids = new_centroids
+    # Add cluster labels to data_points DataFrame
+    data_points['cluster'] = labels
 
     return centroids, data_points, total_distance
 

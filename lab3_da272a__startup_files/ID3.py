@@ -9,6 +9,8 @@
 # Make sure you have these packages installed on your system.
 import pandas as pd
 import numpy as np
+from collections import Counter
+from scipy.stats import entropy
 import math 
 
 
@@ -43,10 +45,10 @@ class Utils:
         count_return_class = 0
         
         value_counts = target_column.value_counts()
-        for target_value in value_counts.keys():
-            if value_counts[target_value[0]] > count_return_class:
-                count_return_class = value_counts[target_value[0]] 
-                return_class = target_value        
+        for target_value, count in value_counts.items():
+            if count > count_return_class:
+                count_return_class = count
+                return_class = target_value       
                 
         return return_class
     
@@ -72,7 +74,7 @@ class Utils:
 class Node:
     
     #Constructor for the node class taking the following parameters.
-    def __init__(self, height, max_height, input_columns, target_column, parent, parent_split_value):
+    def __init__(self, height, max_height, input_columns, target_column, parent):
         
         # Height in the tree for the current node. 
         # It is suggested that the height of the root of the tree is 1. 
@@ -113,62 +115,65 @@ class Node:
     
         # Dictionary used to keep track of the child nodes. Empty if the node is a leaf. 
         self.children = {}
-
-
+        
         
     # Method is used to expand a node when constucting the decision tree  
     def split(self):
-        # Check if the node is a leaf node
-        if self.depth == self.max_height or len(self.target_column.unique()) == 1 or len(self.input_columns.columns) == 0:
-            self.is_leaf = True
-            self.class_label = Utils.find_dominating_class(self.target_column)
-            return
+        # Check if the node is a leaf
+       if self.height == self.max_height or len(np.unique(self.target_column)) == 1:
+           self.class_name = Utils.find_dominating_class(self.target_column)
+           return
 
-        # Initialize the best feature and the highest information gain
-        best_feature = None
-        highest_info_gain = -1
+       # Find the best split
+       best_feature = None
+       best_info_gain = -1
+       initial_entropy = Utils.entropy(self.target_column)
 
-        # Calculate information gain for each feature
-        for feature in self.input_columns.columns:
-            info_gain = self.information_gain(feature)
-            if info_gain > highest_info_gain:
-                highest_info_gain = info_gain
-                best_feature = feature
+       for feature in self.input_columns:
+           feature_entropy = 0
+           for value in np.unique(self.input_columns[feature]):
+               subset = self.target_column[self.input_columns[feature] == value]
+               feature_entropy += (len(subset) / len(self.target_column)) * Utils.entropy(subset)
 
-        # Check if a valid split is found
-        if best_feature is None:
-            self.is_leaf = True
-            self.class_label = Utils.find_dominating_class(self.target_column)
-            return
+           info_gain = initial_entropy - feature_entropy
+           if info_gain > best_info_gain:
+               best_info_gain = info_gain
+               best_feature = feature
 
-        # Split the dataset based on the best feature
-        for feature_value in self.input_columns[best_feature].unique():
-            subset = self.input_columns[self.input_columns[best_feature] == feature_value]
-            subset_target = self.target_column.loc[subset.index]
-            subset = subset.drop([best_feature], axis=1)
+       self.split_variable = best_feature
+       if best_feature is None:
+           self.class_name = Utils.find_dominating_class(self.target_column)
+           return
 
-            child_node = Node(Utils.get_next_node_id(), self.max_height, subset, subset_target, self, feature_value)
-            self.children[feature_value] = child_node
-            child_node.split()
+       # Create child nodes
+       for value in np.unique(self.input_columns[best_feature]):
+           subset = self.input_columns[self.input_columns[best_feature] == value]
+           target_subset = self.target_column[self.input_columns[best_feature] == value]
+           child = Node(self.height + 1, self.max_height, subset, target_subset, self)
+           self.children[value] = child
+           child.split()
             
             # This method creates a text representation of the decision tree.   
-            def print(self):
-                print("Node<" + str(self.id) + ">" )
-                
-                if not self.children:
-                    print("  Leaf node - Parent: " + str(self.parent.id) + ", Decision: " + self.class_name)
-                    
-                else:
-                    if self.parent is None:
-                        print("  Non leaf node - Parent: None")
-                    else:
-                        print("  Non leaf node - Parent: " + str(self.parent.id))    
-                        print("  Split variable: " + self.split_variable)
-                    
-                        
-                    for child_split_value in self.children.keys():
-                        child_node = self.children[child_split_value]  
-                        print("    Child_node: " + str(child_node.id) + ", split_value: " + str(child_split_value))
+    def print(self):
+        print(f"Node<{self.id}>")
+
+        if not self.children:
+            # Handle case when parent is None
+            parent_id = 'None' if self.parent is None else str(self.parent.id)
+            # Print for leaf node
+            print(f"  Leaf node - Parent: {parent_id}, Decision: {self.class_name}")
+        else:
+            # Handle case when parent is None
+            parent_id = 'None' if self.parent is None else str(self.parent.id)
+            print(f"  Non-leaf node - Parent: {parent_id}")
+
+            if self.split_variable is not None:
+                # Print split variable if it's not None
+                print(f"  Split variable: {self.split_variable}")
+
+            for child_split_value, child_node in self.children.items():
+                # Print details for each child node
+                print(f"    Child_node: {child_node.id}, split_value: {child_split_value}")
 
 
 
@@ -203,7 +208,7 @@ class DecisionTree:
         node_id_counter = 1
     
         # Create the root of the tree
-        self.root = Node(1, self.max_height, self.input_columns, self.target_column, None, None)
+        self.root = Node(1, self.max_height, self.input_columns, self.target_column, None)
 
         # Generate the decision tree by calling the self.generate() function.
         self.generate()

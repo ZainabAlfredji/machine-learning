@@ -39,7 +39,6 @@ def kmeans(data_points, num_clusters, termination_tol, max_iter):
     
     # You should implement the kmeans algorithm by editing this function.
     #initialize centroids by randomly selecting data point and reset when method is called again
-    # Initialize centroids by randomly selecting data points
     centroids = data_points.sample(n=num_clusters, random_state=42).reset_index(drop=True)
 
     for _ in range(max_iter):
@@ -53,7 +52,7 @@ def kmeans(data_points, num_clusters, termination_tol, max_iter):
         # Using only the original data columns (x, y) for calculating new centroids
         new_centroids = data_points_no_cluster.groupby(data_points['cluster']).mean().reset_index(drop=True)
 
-        # Calculate SSE (Sum of Squared Errors)
+        # Calculate SSE (Sum of Squared Errors or the variance of the random variable)
         sse = sum(np.linalg.norm(data_points_no_cluster[data_points['cluster'] == j] - centroids.iloc[j])**2 for j in range(num_clusters))
 
         # Termination condition based on SSE change
@@ -83,7 +82,7 @@ plt.title("Data points")
 plt.show()
 
 
-num_clusters_to_test = 20
+num_clusters_to_test = 15
 total_dist_elbow = []
 
 for k in range(1,num_clusters_to_test+1):

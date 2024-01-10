@@ -252,7 +252,7 @@ def main():
     print(golf_dataframe)
     print("\n")
 
-    max_height = 1
+    max_height = 3
     
     # Generate decision tree for golf data set, target variable "Play Golf" and max_height=3 
     dt = DecisionTree(max_height, golf_dataframe, 'Play Golf')

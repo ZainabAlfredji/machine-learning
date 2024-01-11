@@ -20,6 +20,7 @@ import math
 class Utils:
     
     #Calculates the entropy for the values in target_column, which should be of type Pandas.DataFrame
+    #Entropy is a measure of disorder to determine how a dataset should be split.
     @staticmethod
     def entropy(target_column):
         
@@ -38,6 +39,7 @@ class Utils:
     
     # Identifies the dominating class for the entries in target_column
     # target_column should be of typePandas.DataFrame 
+    # This static method identifies the most frequent (dominating) class in the target column.
     @staticmethod
     def find_dominating_class(target_column):
                 
@@ -129,12 +131,15 @@ class Node:
        best_info_gain = -1
        initial_entropy = Utils.entropy(self.target_column)
 
+        #it calculates the weighted entropy after splitting the dataset based on each unique value of that feature.
        for feature in self.input_columns:
            feature_entropy = 0
            for value in np.unique(self.input_columns[feature]):
                subset = self.target_column[self.input_columns[feature] == value]
                feature_entropy += (len(subset) / len(self.target_column)) * Utils.entropy(subset)
 
+           # Information gain for each feature is calculated as the difference between the initial entropy and the weighted entropy after the split.
+           # The feature with the highest information gain is chosen for the split.
            info_gain = initial_entropy - feature_entropy
            if info_gain > best_info_gain:
                best_info_gain = info_gain

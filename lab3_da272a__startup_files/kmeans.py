@@ -38,6 +38,7 @@ def distance(a,b):
 def kmeans(data_points, num_clusters, termination_tol, max_iter):
     
     # You should implement the kmeans algorithm by editing this function.
+    
     #initialize centroids by randomly selecting data point and reset when method is called again
     centroids = data_points.sample(n=num_clusters, random_state=42).reset_index(drop=True)
 
@@ -50,12 +51,15 @@ def kmeans(data_points, num_clusters, termination_tol, max_iter):
 
         # Calculate new centroids
         # Using only the original data columns (x, y) for calculating new centroids
+        # After assigning points to clusters, the centroids are recalculated as the mean of the points in each cluster.
         new_centroids = data_points_no_cluster.groupby(data_points['cluster']).mean().reset_index(drop=True)
 
         # Calculate SSE (Sum of Squared Errors or the variance of the random variable)
-        sse = sum(np.linalg.norm(data_points_no_cluster[data_points['cluster'] == j] - centroids.iloc[j])**2 for j in range(num_clusters))
+        # It's a measure of how well the data points are clustered around the centroids.
+        total_dist = sum(np.linalg.norm(data_points_no_cluster[data_points['cluster'] == j] - centroids.iloc[j])**2 for j in range(num_clusters))
 
         # Termination condition based on SSE change
+        # This condition checks if the centroids have moved significantly. If not, it implies convergence.
         if len(new_centroids) == len(centroids):
             sse_change = sum(np.linalg.norm(new_centroids.iloc[j] - centroids.iloc[j]) for j in range(num_clusters))
             if sse_change < termination_tol:
@@ -63,7 +67,7 @@ def kmeans(data_points, num_clusters, termination_tol, max_iter):
 
         centroids = new_centroids
 
-    return centroids, data_points, sse
+    return centroids, data_points, total_dist
 
 
 # Test elbow method using this code
